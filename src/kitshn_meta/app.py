@@ -11,7 +11,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import cast, get_args
 
-import httpx
+import httpx2
 from starlette.applications import Starlette
 from starlette.requests import Request
 from starlette.responses import FileResponse, JSONResponse, PlainTextResponse, Response
@@ -46,7 +46,7 @@ class Services:
     """Network lookups with small in-memory caches. One instance per process."""
 
     status_root: Path
-    client: httpx.AsyncClient
+    client: httpx2.AsyncClient
     github_token: str | None = None
     visibility: dict[str, tuple[float, bool]] = field(default_factory=dict)
     probes: dict[str, tuple[float, Probe]] = field(default_factory=dict)
@@ -63,7 +63,7 @@ class Services:
             headers["Authorization"] = f"Bearer {self.github_token}"
         try:
             response = await self.client.get(f"https://api.github.com/repos/{owner}/{repo}", headers=headers)
-        except httpx.HTTPError:
+        except httpx2.HTTPError:
             return cached[1] if cached else False
         if response.status_code == 200:
             public = response.json().get("private") is False
@@ -85,7 +85,7 @@ class Services:
         try:
             response = await self.client.get(url, follow_redirects=False)
             result = Probe(status=response.status_code, ms=round((time.monotonic() - started) * 1000))
-        except httpx.HTTPError:
+        except httpx2.HTTPError:
             result = Probe(status=None, ms=None)
         self.probes[url] = (time.monotonic() + PROBE_TTL, result)
         return result
@@ -159,12 +159,12 @@ async def healthz(request: Request) -> Response:
     return PlainTextResponse("ok")
 
 
-def create_app(status_root: Path | None = None, transport: httpx.AsyncBaseTransport | None = None) -> Starlette:
+def create_app(status_root: Path | None = None, transport: httpx2.AsyncBaseTransport | None = None) -> Starlette:
     root = status_root or Path(os.environ.get("STATUS_DIR", "/status"))
 
     @asynccontextmanager
     async def lifespan(app: Starlette) -> AsyncIterator[None]:
-        async with httpx.AsyncClient(timeout=5.0, transport=transport, headers={"User-Agent": "kitshn-meta"}) as client:
+        async with httpx2.AsyncClient(timeout=5.0, transport=transport, headers={"User-Agent": "kitshn-meta"}) as client:
             app.state.services = Services(root, client, os.environ.get("GITHUB_TOKEN") or None)
             yield
 

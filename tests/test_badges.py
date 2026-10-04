@@ -2,7 +2,7 @@ import json
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
-import httpx
+import httpx2
 import pytest
 from starlette.testclient import TestClient
 
@@ -89,15 +89,15 @@ def _write(root: Path, owner: str, repo: str, environment: str, **fields: object
 def _client(root: Path, private: set[str] | None = None) -> TestClient:
     private = private or set()
 
-    def handler(request: httpx.Request) -> httpx.Response:
+    def handler(request: httpx2.Request) -> httpx2.Response:
         if request.url.host == "api.github.com":
             name = request.url.path.removeprefix("/repos/")
-            return httpx.Response(200, json={"private": name in private})
+            return httpx2.Response(200, json={"private": name in private})
         if "down" in request.url.host:
-            return httpx.Response(502)
-        return httpx.Response(200)
+            return httpx2.Response(502)
+        return httpx2.Response(200)
 
-    return TestClient(create_app(root, httpx.MockTransport(handler)))
+    return TestClient(create_app(root, httpx2.MockTransport(handler)))
 
 
 def test_repo_endpoint_renders_svg_and_shields_json(tmp_path: Path) -> None:
