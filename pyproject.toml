@@ -1,0 +1,32 @@
+[project]
+name = "kitshn-meta"
+version = "0.1.0"
+description = "KitSHn landing page and deploy badge server"
+readme = "README.md"
+authors = [
+    { name = "Yarden Zamir", email = "dev@yarden-zamir.com" }
+]
+requires-python = ">=3.14"
+dependencies = [
+    "httpx>=0.28.1",
+    "starlette>=1.7.0",
+    "uvicorn>=0.54.0",
+]
+
+[build-system]
+requires = ["uv_build>=0.12.23,<0.13.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+    "ruff>=0.16.10",
+    "ty>=0.0.84",
+]
+
+[tool.ruff]
+line-length = 120
+target-version = "py314"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

@@ -1,0 +1,345 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>KitSHn</title>
+<meta name="description" content="KitSHn deploys GitHub repos onto a VPS you own. Push to main, and the new version is live. Open a pull request, and it gets a preview.">
+<link rel="icon" href="/static/icon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@100..125,400..800&family=Martian+Mono:wdth,wght@75..100,400..600&display=swap">
+<style>
+  :root {
+    color-scheme: light;
+    --bg: #EFF1EC;
+    --ink: #22282A;
+    --muted: #5D6762;
+    --line: #CDD3CC;
+    --iron: #2F3532;
+    --basil: #2E7D5B;
+    --paper: #FCFCF8;
+    --paper-ink: #22282A;
+    --paper-muted: #6B726D;
+    --paper-rule: #C9CCC4;
+    --rail-top: #B9C0BB;
+    --rail-bottom: #7D8681;
+    --field: #FFFFFF;
+    --display: "Archivo", "Helvetica Neue", Arial, sans-serif;
+    --mono: "Martian Mono", ui-monospace, Menlo, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      color-scheme: dark;
+      --bg: #161A18;
+      --ink: #E3E7E2;
+      --muted: #98A29C;
+      --line: #2E3532;
+      --basil: #63C499;
+      --rail-top: #5E6763;
+      --rail-bottom: #343B38;
+      --field: #1E2421;
+    }
+  }
+
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font: 400 17px/1.6 var(--display);
+    padding: env(safe-area-inset-top, 0px) 20px env(safe-area-inset-bottom, 0px);
+  }
+  main { max-width: 980px; margin: 0 auto; padding-block: 56px 96px; display: grid; gap: 88px; }
+  h1, h2 { margin: 0; line-height: 1; text-wrap: balance; }
+  h2 { font-size: clamp(1.6rem, 3.4vw, 2.2rem); font-weight: 750; font-stretch: 125%; letter-spacing: -0.01em; }
+  p { margin: 0; max-width: 62ch; }
+  a { color: var(--basil); text-underline-offset: 3px; }
+  code { font-family: var(--mono); font-size: 0.82em; font-stretch: 87%; }
+  :focus-visible { outline: 2px solid var(--basil); outline-offset: 3px; }
+  section { display: grid; gap: 24px; }
+  .kicker { font: 500 0.72rem/1 var(--mono); text-transform: uppercase; letter-spacing: 0.14em; color: var(--muted); }
+
+  /* Head: the wordmark is the hero. */
+  header { display: grid; gap: 28px; }
+  .mark { display: flex; align-items: center; gap: clamp(14px, 3vw, 28px); }
+  .mark img { width: clamp(64px, 12vw, 112px); height: auto; }
+  h1 { font-size: clamp(3.6rem, 13vw, 8.5rem); font-weight: 800; font-stretch: 125%; letter-spacing: -0.035em; }
+  .lede { font-size: clamp(1.1rem, 2.2vw, 1.35rem); line-height: 1.45; max-width: 34ch; }
+  .install { display: flex; flex-wrap: wrap; gap: 10px 24px; align-items: baseline; }
+  .install .or { color: var(--muted); font-size: 0.9rem; }
+  pre {
+    font: 400 0.82rem/1.7 var(--mono); font-stretch: 87%;
+    background: var(--iron); color: #E9ECE8; padding: 12px 16px; border-radius: 4px;
+    overflow-x: auto; max-width: 100%; margin: 0; white-space: pre;
+  }
+
+  /* The pass: tickets hanging from a rail. */
+  .pass { display: grid; }
+  .rail {
+    height: 14px; border-radius: 7px;
+    background: linear-gradient(var(--rail-top), var(--rail-bottom));
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35);
+  }
+  .tickets {
+    list-style: none; margin: 0; padding: 0 12px;
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(208px, 1fr)); gap: 0 18px;
+  }
+  .ticket {
+    position: relative; margin-top: -4px; padding: 26px 16px 24px;
+    background: var(--paper); color: var(--paper-ink);
+    font: 400 0.76rem/1.5 var(--mono); font-stretch: 87%;
+    box-shadow: 0 10px 18px -14px rgba(0, 0, 0, 0.45);
+    transform-origin: top center; transform: rotate(var(--tilt, 0deg));
+    display: grid; gap: 10px; align-content: start;
+    -webkit-mask: radial-gradient(4px at 50% 100%, #0000 98%, #000) 50% / 12px 100%;
+            mask: radial-gradient(4px at 50% 100%, #0000 98%, #000) 50% / 12px 100%;
+  }
+  .ticket:nth-child(2) { --tilt: 0.8deg; }
+  .ticket:nth-child(3) { --tilt: -0.6deg; }
+  .ticket:nth-child(4) { --tilt: 0.4deg; }
+  .ticket .clip {
+    position: absolute; top: 0; left: 50%; width: 34px; height: 12px; margin-left: -17px;
+    background: var(--rail-bottom); border-radius: 0 0 3px 3px;
+  }
+  .ticket .order { display: flex; justify-content: space-between; gap: 8px; color: var(--paper-muted); text-transform: uppercase; letter-spacing: 0.08em; font-size: 0.66rem; }
+  .ticket .dish { font: 700 1.05rem/1.1 var(--display); font-stretch: 112%; color: var(--paper-ink); overflow-wrap: anywhere; }
+  .ticket .dish a { color: inherit; text-decoration: none; }
+  .ticket .dish a:hover { text-decoration: underline; }
+  .ticket img { display: block; max-width: 100%; height: 20px; }
+  .ticket hr { border: 0; border-top: 1px dashed var(--paper-rule); margin: 2px 0; width: 100%; }
+  .pass-note { color: var(--muted); font-size: 0.9rem; margin-top: 18px; }
+
+  /* Steps: a real sequence, so the order is the information. */
+  .steps { margin: 0; padding: 0; list-style: none; display: grid; border-top: 1px solid var(--line); }
+  .steps li { display: grid; grid-template-columns: minmax(0, 17rem) minmax(0, 1fr); gap: 8px 32px; padding: 18px 0; border-bottom: 1px solid var(--line); }
+  .steps code { font-size: 0.8rem; color: var(--ink); overflow-wrap: anywhere; }
+  .steps p { color: var(--muted); }
+  @media (max-width: 640px) { .steps li { grid-template-columns: 1fr; } }
+
+  /* Badge builder */
+  .builder { display: grid; grid-template-columns: minmax(0, 18rem) minmax(0, 1fr); gap: 32px; align-items: start; }
+  @media (max-width: 760px) { .builder { grid-template-columns: 1fr; } }
+  form { display: grid; gap: 16px; }
+  .field { display: grid; gap: 6px; font-size: 0.85rem; color: var(--muted); }
+  input[type="text"] {
+    font: 400 0.88rem var(--mono); font-stretch: 87%; color: var(--ink); background: var(--field);
+    border: 1px solid var(--line); border-radius: 4px; padding: 9px 10px; width: 100%;
+  }
+  fieldset { border: 0; padding: 0; margin: 0; min-width: 0; }
+  legend { font-size: 0.85rem; color: var(--muted); padding: 0; margin-bottom: 8px; }
+  .choices { display: flex; flex-wrap: wrap; gap: 6px; }
+  .choices label { position: relative; }
+  .choices input { position: absolute; opacity: 0; inset: 0; margin: 0; cursor: pointer; }
+  .choices span {
+    display: inline-block; font: 500 0.78rem var(--mono); font-stretch: 87%; padding: 6px 10px;
+    border: 1px solid var(--line); border-radius: 4px; color: var(--ink); background: var(--field);
+  }
+  .choices input:checked + span { background: var(--iron); border-color: var(--iron); color: #FFFFFF; }
+  .choices input:focus-visible + span { outline: 2px solid var(--basil); outline-offset: 2px; }
+  .result { display: grid; gap: 18px; min-width: 0; }
+  .preview { min-height: 54px; display: flex; align-items: center; padding: 16px; border: 1px solid var(--line); border-radius: 4px; background: var(--field); overflow-x: auto; }
+  .preview img { display: block; }
+  .copyrow { display: grid; gap: 6px; min-width: 0; }
+  .copyrow-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; font-size: 0.85rem; color: var(--muted); }
+  button {
+    font: 500 0.78rem var(--mono); color: var(--basil); background: none; border: 0; padding: 0; cursor: pointer;
+    text-decoration: underline; text-underline-offset: 3px;
+  }
+  .hint { font-size: 0.9rem; color: var(--muted); }
+  .shields { border-left: 3px solid var(--basil); padding-left: 18px; display: grid; gap: 12px; min-width: 0; }
+
+  footer { display: flex; flex-wrap: wrap; gap: 8px 24px; color: var(--muted); font-size: 0.85rem; border-top: 1px solid var(--line); padding-top: 20px; }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .ticket { animation: hang 600ms cubic-bezier(.2, .9, .3, 1.3) both; }
+    .ticket:nth-child(2) { animation-delay: 70ms; }
+    .ticket:nth-child(3) { animation-delay: 140ms; }
+    .ticket:nth-child(4) { animation-delay: 210ms; }
+    @keyframes hang { from { transform: translateY(-6px) rotate(0deg); } to { transform: rotate(var(--tilt, 0deg)); } }
+  }
+</style>
+</head>
+<body>
+<main>
+
+  <header>
+    <div class="mark">
+      <img src="/static/icon.svg" alt="" width="112" height="112">
+      <h1>kitshn</h1>
+    </div>
+    <p class="lede">Deploys GitHub repos onto a VPS you own. Push to <code>main</code> and it is live. Open a pull request and it gets its own preview.</p>
+    <div class="install">
+      <pre>brew install yarden-zamir/tap/kitshn</pre>
+      <span class="or">or <a href="https://github.com/Yarden-zamir/kitshn">read the README</a></span>
+    </div>
+  </header>
+
+  <section aria-labelledby="pass-title">
+    <span class="kicker">On the pass</span>
+    <h2 id="pass-title">Live right now</h2>
+    <div class="pass">
+      <div class="rail" aria-hidden="true"></div>
+      <ul class="tickets" id="tickets"></ul>
+    </div>
+    <p class="pass-note">Each ticket is a real recipe on this VPS. Its badge is a live image from this server.</p>
+  </section>
+
+  <section aria-labelledby="flow-title">
+    <span class="kicker">The flow</span>
+    <h2 id="flow-title">From a repo to a site</h2>
+    <ol class="steps">
+      <li><code>kitshn init --template static</code><p>Writes the recipe: a Compose file, a Caddy route for each environment, and the GitHub workflow.</p></li>
+      <li><code>kitshn recipe auth --vps-host you@vps</code><p>Gives the repo's workflow an SSH key for your VPS. Run it before the first push.</p></li>
+      <li><code>git push</code><p>GitHub Actions SSHes in and deploys. A pull request deploys a preview at its own hostname.</p></li>
+      <li><code>kitshn track</code><p>Follows the run, checks the VPS, and requests the public URL, all from your laptop.</p></li>
+    </ol>
+  </section>
+
+  <section aria-labelledby="badge-title">
+    <span class="kicker">Badges</span>
+    <h2 id="badge-title">Put the state in the README</h2>
+    <p>Public repos deployed with KitSHn get live badges from this server. They show what the VPS runs: the state of each environment, the deployed commit, and the pull request previews.</p>
+    <div class="builder">
+      <form id="builder" autocomplete="off">
+        <label class="field" for="repo">Repository
+          <input type="text" id="repo" name="repo" value="Yarden-zamir/gr52" spellcheck="false">
+        </label>
+        <fieldset>
+          <legend>Badge</legend>
+          <div class="choices">
+            <label><input type="radio" name="kind" value="repo" checked><span>environments</span></label>
+            <label><input type="radio" name="kind" value="status"><span>status</span></label>
+            <label><input type="radio" name="kind" value="ref"><span>commit</span></label>
+            <label><input type="radio" name="kind" value="rhythm"><span>rhythm</span></label>
+            <label><input type="radio" name="kind" value="edge"><span>response</span></label>
+            <label><input type="radio" name="kind" value="static"><span>static</span></label>
+          </div>
+        </fieldset>
+        <fieldset id="previews-field">
+          <legend>Previews</legend>
+          <div class="choices">
+            <label><input type="radio" name="previews" value="count" checked><span>count</span></label>
+            <label><input type="radio" name="previews" value="list"><span>numbers</span></label>
+            <label><input type="radio" name="previews" value="dots"><span>dots</span></label>
+            <label><input type="radio" name="previews" value="hide"><span>hide</span></label>
+          </div>
+        </fieldset>
+        <label class="field" for="env" id="env-field">Environment
+          <input type="text" id="env" name="env" value="prod" spellcheck="false">
+        </label>
+        <label class="field" for="link">Link
+          <input type="text" id="link" name="link" value="https://gr52.yarden-zamir.com" spellcheck="false">
+        </label>
+      </form>
+      <div class="result">
+        <div class="preview"><img id="preview" alt="Badge preview" height="20"></div>
+        <div class="copyrow">
+          <div class="copyrow-head"><span>Markdown</span><button type="button" data-copy="markdown">Copy</button></div>
+          <pre id="markdown"></pre>
+        </div>
+        <p class="hint" id="explain"></p>
+      </div>
+    </div>
+
+    <div class="shields">
+      <span class="kicker">Prefer shields.io</span>
+      <p>Every badge also answers as JSON in the <a href="https://shields.io/badges/endpoint-badge">shields.io endpoint</a> format. Use it to get shields' styles, such as <code>for-the-badge</code>:</p>
+      <div class="copyrow">
+        <div class="copyrow-head"><span>Through shields.io</span><button type="button" data-copy="shields">Copy</button></div>
+        <pre id="shields"></pre>
+      </div>
+      <p>Or use no KitSHn server at all: shields' own GitHub Deployments badge shows the state of the latest deploy. It cannot show previews or the commit.</p>
+      <div class="copyrow">
+        <div class="copyrow-head"><span>No server</span><button type="button" data-copy="direct">Copy</button></div>
+        <pre id="direct"></pre>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <a href="https://github.com/Yarden-zamir/kitshn">github.com/Yarden-zamir/kitshn</a>
+    <a href="https://github.com/Yarden-zamir/kitshn-meta">Source of this page</a>
+    <span>MIT license</span>
+  </footer>
+</main>
+
+<script>
+(() => {
+  const ORIGIN = location.origin;
+  // assets/kitshn-pot.svg in the kitshn repo, base64, for the shields logo parameter.
+  const POT = "PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxNCAxNCI+PGcgZmlsbD0iI2ZmZiI+PHJlY3QgeD0iNiIgeT0iMS4yIiB3aWR0aD0iMiIgaGVpZ2h0PSIxLjYiIHJ4PSIwLjUiLz48cmVjdCB4PSIyLjIiIHk9IjMuNCIgd2lkdGg9IjkuNiIgaGVpZ2h0PSIxLjUiIHJ4PSIwLjc1Ii8+PHJlY3QgeD0iMyIgeT0iNS42IiB3aWR0aD0iOCIgaGVpZ2h0PSI2LjYiIHJ4PSIxLjYiLz48cmVjdCB4PSIwLjgiIHk9IjYuOCIgd2lkdGg9IjIuNCIgaGVpZ2h0PSIxLjQiIHJ4PSIwLjciLz48cmVjdCB4PSIxMC44IiB5PSI2LjgiIHdpZHRoPSIyLjQiIGhlaWdodD0iMS40IiByeD0iMC43Ii8+PC9nPjwvc3ZnPgo=";
+
+  const tickets = [
+    { repo: "Yarden-zamir/gr52", site: "https://gr52.yarden-zamir.com", note: "static site" },
+    { repo: "Yarden-zamir/yam2yam", site: "https://yam2yam.yarden-zamir.com", note: "static site" },
+    { repo: "Yarden-zamir/climbing", site: null, note: "web app" },
+    { repo: "Yarden-zamir/kitshn-meta", site: ORIGIN, note: "this page" },
+  ];
+  const list = document.getElementById("tickets");
+  tickets.forEach((ticket, index) => {
+    const name = ticket.repo.split("/")[1];
+    const li = document.createElement("li");
+    li.className = "ticket";
+    li.innerHTML = `<span class="clip" aria-hidden="true"></span>
+      <div class="order"><span>Order ${index + 1}</span><span>${ticket.note}</span></div>
+      <div class="dish"><a href="${ticket.site || `https://github.com/${ticket.repo}`}">${name}</a></div>
+      <hr>
+      <img src="${ORIGIN}/b/${ticket.repo}.svg" alt="KitSHn state of ${name}">`;
+    list.appendChild(li);
+  });
+
+  const form = document.getElementById("builder");
+  const $ = (id) => document.getElementById(id);
+  const explain = {
+    repo: "The main environment's state, then its pull request previews. Pick how the previews show.",
+    status: "One environment: live, deploying, live with a failed last deploy, or down with the HTTP status.",
+    ref: "The deployed commit and its age. A reader can compare it with the latest commit in the repo.",
+    rhythm: "Deploys per day for the last 30 days, from the VPS's own record.",
+    edge: "The public route right now: HTTP status and response time, checked at most once a minute.",
+    static: "No state. Says that the repo deploys with KitSHn. Safe for private repos.",
+  };
+
+  function urls() {
+    const data = new FormData(form);
+    const repo = String(data.get("repo") || "").trim().replace(/^https:\/\/github\.com\//, "").replace(/\/+$/, "");
+    const kind = String(data.get("kind"));
+    const env = String(data.get("env") || "prod").trim();
+    const previews = String(data.get("previews"));
+    const path = kind === "static" ? "/b/static" : kind === "repo" ? `/b/${repo}` : `/b/${repo}/${env}`;
+    let query = "";
+    if (kind === "repo" && previews !== "count") query = `?previews=${previews}`;
+    if (["ref", "rhythm", "edge"].includes(kind)) query = `?show=${kind}`;
+    return { repo, kind, env, svg: `${ORIGIN}${path}.svg${query}`, json: `${ORIGIN}${path}.json${query}` };
+  }
+
+  function render() {
+    const u = urls();
+    const link = String(new FormData(form).get("link") || "").trim() || `https://github.com/${u.repo}`;
+    $("previews-field").hidden = u.kind !== "repo";
+    $("env-field").hidden = u.kind === "repo" || u.kind === "static";
+    $("preview").src = u.svg;
+    $("markdown").textContent = `[![kitshn](${u.svg})](${link})`;
+    $("shields").textContent = `[![kitshn](https://img.shields.io/endpoint?url=${encodeURIComponent(u.json)}&style=for-the-badge)](${link})`;
+    $("direct").textContent = `[![kitshn](https://img.shields.io/github/deployments/${u.repo}/${u.env}?label=kitshn&labelColor=2F3532&logo=data:image/svg%2Bxml;base64,${POT})](${link})`;
+    $("explain").textContent = explain[u.kind];
+  }
+
+  form.addEventListener("input", render);
+  document.querySelectorAll("[data-copy]").forEach((button) => {
+    button.addEventListener("click", async () => {
+      try {
+        await navigator.clipboard.writeText($(button.dataset.copy).textContent);
+        button.textContent = "Copied";
+      } catch {
+        button.textContent = "Select the text to copy";
+      }
+      setTimeout(() => { button.textContent = "Copy"; }, 1600);
+    });
+  });
+  render();
+})();
+</script>
+</body>
+</html>
