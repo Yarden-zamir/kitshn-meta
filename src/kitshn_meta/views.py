@@ -1,15 +1,9 @@
-"""Turn KitSHn deployment status files into badges.
-
-KitSHn writes one JSON file per deployment under `<status root>/<owner>/<repo>/<environment>.json`
-(see `specs/deploy-flow.md` in the kitshn repo). This module only reads them.
-"""
+"""Decide what each badge says, from deployment state that `source.py` reads from GitHub."""
 
 from __future__ import annotations
 
-import json
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
-from pathlib import Path
 from typing import Literal
 
 from .badges import BASIL, DEPLOYING, DOWN, LABEL_COLOR, LIVE, POT_SVG, REF, UNKNOWN, WARN, Segment
@@ -64,53 +58,6 @@ def safe_name(value: str) -> bool:
     """GitHub owner, repo, and KitSHn environment names: letters, digits, `-`, `_`, `.`, no `..`."""
 
     return bool(value) and not value.startswith(".") and all(char.isalnum() or char in "-_." for char in value)
-
-
-def load_env(root: Path, owner: str, repo: str, environment: str) -> EnvStatus | None:
-    if not all(safe_name(part) for part in (owner, repo, environment)):
-        return None
-    return _parse(root / owner / repo / f"{environment}.json")
-
-
-def load_repo(root: Path, owner: str, repo: str) -> list[EnvStatus]:
-    if not (safe_name(owner) and safe_name(repo)):
-        return []
-    folder = root / owner / repo
-    if not folder.is_dir():
-        return []
-    return [env for path in sorted(folder.glob("*.json")) if (env := _parse(path)) is not None]
-
-
-def _parse(path: Path) -> EnvStatus | None:
-    try:
-        record = json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, ValueError):
-        return None
-    if not isinstance(record, dict) or record.get("state") not in ("deploying", "live", "failed"):
-        return None
-    deploys = record.get("deploys")
-    return EnvStatus(
-        environment=str(record.get("environment") or path.stem),
-        state=record["state"],
-        ref=_text(record.get("ref")),
-        url=_text(record.get("url")),
-        deployed_at=_time(record.get("deployed_at")),
-        deploys=tuple(when for item in (deploys if isinstance(deploys, list) else []) if (when := _time(item))),
-    )
-
-
-def _text(value: object) -> str | None:
-    return value if isinstance(value, str) and value else None
-
-
-def _time(value: object) -> datetime | None:
-    if not isinstance(value, str):
-        return None
-    try:
-        parsed = datetime.fromisoformat(value)
-    except ValueError:
-        return None
-    return parsed if parsed.tzinfo else parsed.replace(tzinfo=UTC)
 
 
 def age(since: datetime | None, now: datetime) -> str:

@@ -1,6 +1,4 @@
-import json
 from datetime import UTC, datetime, timedelta
-from pathlib import Path
 
 import httpx2
 import pytest
@@ -78,60 +76,108 @@ def test_safe_name_rejects_traversal() -> None:
     assert not any(safe_name(value) for value in ("", "..", ".hidden", "a/b", "a b"))
 
 
-def _write(root: Path, owner: str, repo: str, environment: str, **fields: object) -> None:
-    path = root / owner / repo / f"{environment}.json"
-    path.parent.mkdir(parents=True, exist_ok=True)
-    record = {"environment": environment, "state": "live", "ref": "06fec4472672", "url": f"https://{environment}.example.com",
-              "deployed_at": (NOW - timedelta(days=2)).isoformat(), "deploys": []}
-    path.write_text(json.dumps(record | fields), encoding="utf-8")
+class FakeGitHub:
+    """The GitHub API paths that source.py reads, from plain dicts."""
+
+    def __init__(self) -> None:
+        self.private: set[str] = set()
+        self.open_pulls: dict[str, list[int]] = {}
+        # (repo, environment) -> newest first: (id, sha, created_at, state, environment_url)
+        self.deployments: dict[tuple[str, str], list[tuple[int, str, str, str, str]]] = {}
+        self.calls: list[str] = []
+
+    def deploy(self, repo: str, environment: str, *items: tuple[str, str, str]) -> None:
+        start = len(self.deployments) * 100
+        self.deployments[(repo, environment)] = [
+            (start + index, sha, "2026-10-02T12:00:00Z", state, url) for index, (sha, state, url) in enumerate(items)
+        ]
+
+    def handler(self, request: httpx2.Request) -> httpx2.Response:
+        if request.url.host != "api.github.com":
+            return httpx2.Response(502 if "down" in request.url.host else 200)
+        path = request.url.path
+        self.calls.append(str(request.url))
+        parts = path.split("/")
+        repo = f"{parts[2]}/{parts[3]}"
+        if len(parts) == 4:
+            return httpx2.Response(200, json={"private": repo in self.private})
+        if parts[4] == "pulls":
+            return httpx2.Response(200, json=[{"number": n} for n in self.open_pulls.get(repo, [])])
+        if len(parts) == 5:
+            environment = request.url.params["environment"]
+            per_page = int(request.url.params.get("per_page", "30"))
+            page = int(request.url.params.get("page", "1"))
+            rows = self.deployments.get((repo, environment), [])[(page - 1) * per_page : page * per_page]
+            return httpx2.Response(200, json=[{"id": i, "sha": sha, "created_at": at} for i, sha, at, _, _ in rows])
+        deployment_id = int(parts[5])
+        for rows in self.deployments.values():
+            for i, _, _, state, url in rows:
+                if i == deployment_id:
+                    return httpx2.Response(200, json=[{"state": state, "environment_url": url}])
+        return httpx2.Response(404)
 
 
-def _client(root: Path, private: set[str] | None = None) -> TestClient:
-    private = private or set()
-
-    def handler(request: httpx2.Request) -> httpx2.Response:
-        if request.url.host == "api.github.com":
-            name = request.url.path.removeprefix("/repos/")
-            return httpx2.Response(200, json={"private": name in private})
-        if "down" in request.url.host:
-            return httpx2.Response(502)
-        return httpx2.Response(200)
-
-    return TestClient(create_app(root, httpx2.MockTransport(handler)))
+def _client(github: FakeGitHub) -> TestClient:
+    return TestClient(create_app(httpx2.MockTransport(github.handler)))
 
 
-def test_repo_endpoint_renders_svg_and_shields_json(tmp_path: Path) -> None:
-    _write(tmp_path, "o", "site", "prod")
-    _write(tmp_path, "o", "site", "pr-7", state="deploying")
-    with _client(tmp_path) as client:
+def test_repo_badge_counts_only_previews_of_open_pull_requests() -> None:
+    github = FakeGitHub()
+    github.deploy("o/site", "prod", ("a" * 40, "success", "https://site.example.com"))
+    github.deploy("o/site", "pr-7", ("b" * 40, "in_progress", ""))
+    # pr-3 has a deployment from its teardown, but its pull request is closed.
+    github.deploy("o/site", "pr-3", ("c" * 40, "success", ""))
+    github.open_pulls["o/site"] = [7]
+    with _client(github) as client:
         svg = client.get("/b/o/site.svg?previews=list")
         data = client.get("/b/o/site.json").json()
     assert svg.headers["content-type"] == "image/svg+xml"
     assert svg.headers["cache-control"] == "public, max-age=60"
-    assert "#7" in svg.text
-    assert data["schemaVersion"] == 1 and data["label"] == "kitshn" and data["message"].startswith("prod live")
+    assert "#7" in svg.text and "#3" not in svg.text
+    assert data["label"] == "kitshn" and data["message"].startswith("prod live") and data["message"].endswith("1 preview")
     assert data["logoSvg"].startswith("<svg")
 
 
-def test_env_endpoint_probes_the_public_url(tmp_path: Path) -> None:
-    _write(tmp_path, "o", "site", "prod", url="https://down.example.com")
-    with _client(tmp_path) as client:
-        assert "down · 502" in client.get("/b/o/site/prod.json").json()["message"]
-        assert client.get("/b/o/site/prod.json?show=ref").json()["message"].startswith("06fec44")
+def test_a_running_or_failed_deploy_reports_the_commit_that_still_serves() -> None:
+    github = FakeGitHub()
+    github.deploy("o/site", "prod", ("n" * 40, "failure", ""), ("o" * 40, "success", "https://site.example.com"))
+    with _client(github) as client:
+        status = client.get("/b/o/site/prod.json").json()["message"]
+        ref = client.get("/b/o/site/prod.json?show=ref").json()["message"]
+    assert status == "live · deploy failed"
+    assert ref.startswith("ooooooo")
 
 
-def test_private_and_missing_repos_get_the_same_unknown_badge(tmp_path: Path) -> None:
-    _write(tmp_path, "o", "secret", "prod")
-    with _client(tmp_path, private={"o/secret"}) as client:
+def test_env_badge_probes_the_environment_url() -> None:
+    github = FakeGitHub()
+    github.deploy("o/site", "prod", ("a" * 40, "success", "https://down.example.com"))
+    with _client(github) as client:
+        assert client.get("/b/o/site/prod.json").json()["message"] == "down · 502"
+
+
+def test_responses_are_cached_between_badge_requests() -> None:
+    github = FakeGitHub()
+    github.deploy("o/site", "prod", ("a" * 40, "success", ""))
+    with _client(github) as client:
+        client.get("/b/o/site/prod.svg")
+        first = len(github.calls)
+        client.get("/b/o/site/prod.svg")
+    assert first == 3 and len(github.calls) == first
+
+
+def test_private_and_missing_repos_get_the_same_unknown_badge() -> None:
+    github = FakeGitHub()
+    github.private.add("o/secret")
+    github.deploy("o/secret", "prod", ("a" * 40, "success", ""))
+    with _client(github) as client:
         private = client.get("/b/o/secret/prod.json").json()
         missing = client.get("/b/o/nothing/prod.json").json()
-        traversal = client.get("/b/o/..%2Fsecret/prod.json")
     assert private == missing and private["message"] == "unknown"
-    assert traversal.status_code in (200, 404) and "06fec44" not in traversal.text
+    assert not any("/deployments" in call and "secret" in call for call in github.calls)
 
 
-def test_bad_options_are_rejected_with_the_allowed_values(tmp_path: Path) -> None:
-    with _client(tmp_path) as client:
+def test_bad_options_are_rejected_with_the_allowed_values() -> None:
+    with _client(FakeGitHub()) as client:
         response = client.get("/b/o/site.svg?previews=all")
     assert response.status_code == 400 and "count, list, dots, hide" in response.text
 
@@ -140,3 +186,14 @@ def test_bad_options_are_rejected_with_the_allowed_values(tmp_path: Path) -> Non
 def test_one_preview_is_singular_in_every_layout(mode: PreviewMode) -> None:
     badge = repo_badge([env("prod"), env("pr-9")], {}, mode, NOW)
     assert badge.message.endswith("· 1 preview")
+
+
+def test_rhythm_reads_every_page_inside_the_thirty_days() -> None:
+    github = FakeGitHub()
+    now = datetime.now(UTC)
+    # 150 deploys over the last 15 days: two pages of the GitHub API.
+    github.deployments[("o/site", "prod")] = [
+        (index, "a" * 40, (now - timedelta(hours=index * 2)).isoformat(), "success", "") for index in range(150)
+    ]
+    with _client(github) as client:
+        assert client.get("/b/o/site/prod.json?show=rhythm").json()["message"] == "150 / 30d"

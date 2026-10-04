@@ -2,10 +2,10 @@
 
 [![deployed with kitshn](https://raw.githubusercontent.com/Yarden-zamir/kitshn/main/assets/badge-deployed-with-kitshn.svg)](https://github.com/Yarden-zamir/kitshn)
 
-This recipe serves the KitSHn landing page and badge server at `kitshn.yarden-zamir.com`. Its one
-service mounts `/logs/.kitshn/status` read-only, and nothing else from the host. Do not add a
-mount of `/deployments`: that folder holds every recipe's checkout, private repos included, and
-this service faces the internet.
+This recipe serves the KitSHn landing page and badge server at `kitshn.yarden-zamir.com`. It
+reads deployment state from the GitHub API only, and mounts nothing from the host but its socket
+folder. Keep it that way: it faces the internet, and `/deployments` holds every recipe's
+checkout, private repos included.
 
 This repository is a KitSHn recipe repo. KitSHn deploys recipe repos from GitHub Actions onto a VPS by resolving GitHub events to deployment environments, copying deployment params, and running the hosted KitSHn CLI through `uvx` on the VPS.
 

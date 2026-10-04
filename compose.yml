@@ -3,16 +3,11 @@ services:
     build: .
     pull_policy: build
     environment:
-      STATUS_DIR: /status
-      # Optional. Without a token, GitHub allows 60 visibility checks per hour, and each answer
-      # is cached for hours. Set KITSHN_GITHUB_TOKEN if more repos use the badges.
+      # A GitHub token for reading public repos' deployments. Without one, GitHub allows 60
+      # requests an hour, which a few badges use up. Set it as the secret KITSHN_GITHUB_TOKEN.
       GITHUB_TOKEN: ${GITHUB_TOKEN:-}
     volumes:
       - ${KITSHN_SOCKET_DIR}:${KITSHN_SOCKET_DIR}
-      # Only the status files that KitSHn writes for each deployment, read-only. Never mount
-      # /deployments: it holds every recipe's checkout, private repos included. The path assumes
-      # KitSHn's default roots; change it if the VPS sets KITSHN_ROOT.
-      - /logs/.kitshn/status:/status:ro
     # uvicorn creates the socket with mode 0666, so the host Caddy user can connect.
     command: ["uvicorn", "kitshn_meta.app:app", "--uds", "${KITSHN_DEFAULT_SOCKET}"]
     healthcheck:
