@@ -37,6 +37,8 @@ def test_render_sizes_segments_to_their_content() -> None:
         ("deploying", Probe(502, 30), ("deploying", DEPLOYING, True)),
         ("failed", Probe(200, 30), ("live · deploy failed", WARN, False)),
         ("live", Probe(502, 30), ("down · 502", DOWN, False)),
+        ("live", Probe(401, 30), ("live · 2d", LIVE, False)),
+        ("live", Probe(404, 30), ("live · 2d", LIVE, False)),
         ("failed", Probe(None, None), ("down", DOWN, False)),
     ],
 )

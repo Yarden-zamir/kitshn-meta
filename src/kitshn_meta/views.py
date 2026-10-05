@@ -24,7 +24,10 @@ class Probe:
 
     @property
     def up(self) -> bool:
-        return self.status is not None and 200 <= self.status < 400
+        """The site answered below 500. A 401 login wall or a 404 at `/` is a working server; a
+        5xx, such as Caddy's 502 for a dead socket, is not. The same rule as kitshn's route check."""
+
+        return self.status is not None and self.status < 500
 
 
 @dataclass(frozen=True, slots=True)
