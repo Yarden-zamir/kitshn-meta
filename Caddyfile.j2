@@ -1,8 +1,4 @@
-{% if environment == "prod" -%}
-kitshn.yarden-zamir.com
-{%- else -%}
-pr.{{ environment.removeprefix("pr-") }}.kitshn.yarden-zamir.com
-{%- endif %} {
+{{ host("kitshn.yarden-zamir.com") }} {
     encode zstd gzip
     reverse_proxy unix//{{ paths.default_socket }}
 }

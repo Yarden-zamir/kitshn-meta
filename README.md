@@ -51,5 +51,5 @@ GITHUB_TOKEN=$(gh auth token) uv run uvicorn kitshn_meta.app:app --reload
 
 ## Deploy
 
-Pushes to `main` deploy `prod`; pull requests deploy `pr.<number>.kitshn.yarden-zamir.com`. After
+Pushes to `main` deploy `prod`; pull requests deploy `pr-<number>.kitshn.yarden-zamir.com`. After
 a push, run `kitshn track`. See `kitshn.md` for the recipe contract.
