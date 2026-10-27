@@ -1,4 +1,11 @@
-{{ host("kitshn.yarden-zamir.com") }} {
+{{ host("kitshn-legacy.yarden-zamir.com") }} {
     encode zstd gzip
     reverse_proxy unix//{{ paths.default_socket }}
 }
+{% if environment == "prod" %}
+
+# kit.yarden-zamir.com is kitshn 2 now. Old links and badges keep their path.
+kitshn.yarden-zamir.com {
+    redir https://kitshn-legacy.yarden-zamir.com{uri} 308
+}
+{% endif %}

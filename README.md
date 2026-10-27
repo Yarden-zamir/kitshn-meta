@@ -1,9 +1,9 @@
 # kitshn-meta
 
-[![kitshn](https://kitshn.yarden-zamir.com/b/Yarden-zamir/kitshn-meta.svg)](https://kitshn.yarden-zamir.com)
+[![kitshn](https://kitshn-legacy.yarden-zamir.com/b/Yarden-zamir/kitshn-meta.svg)](https://kitshn-legacy.yarden-zamir.com)
 
 The [KitSHn](https://github.com/Yarden-zamir/kitshn) landing page and its deploy badge server, at
-[kitshn.yarden-zamir.com](https://kitshn.yarden-zamir.com). It is itself a KitSHn recipe, on the
+[kitshn-legacy.yarden-zamir.com](https://kitshn-legacy.yarden-zamir.com). It is itself a KitSHn recipe, on the
 same VPS as the deployments its badges describe.
 
 ## Badges
@@ -51,5 +51,5 @@ GITHUB_TOKEN=$(gh auth token) uv run uvicorn kitshn_meta.app:app --reload
 
 ## Deploy
 
-Pushes to `main` deploy `prod`; pull requests deploy `pr-<number>.kitshn.yarden-zamir.com`. After
+Pushes to `main` deploy `prod`; pull requests deploy `pr-<number>.kitshn-legacy.yarden-zamir.com`. After
 a push, run `kitshn track`. See `kitshn.md` for the recipe contract.
