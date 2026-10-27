@@ -43,7 +43,7 @@ before doing so, or Caddy will reject the duplicate site definition.
 
 - Services: `web`, the KitSHn landing page and badge server. It binds the default socket.
 - Environments: pushes to `main` deploy `prod`. Pull requests deploy ephemeral `pr-<number>` environments.
-- Hostname: `kitshn.yarden-zamir.com`.
+- Hostname: `kitshn-legacy.yarden-zamir.com`. In `prod`, `kitshn.yarden-zamir.com` redirects there with its path, so old links and badges keep working.
 - Params: optional secret `KITSHN_GITHUB_TOKEN`. Without it, GitHub allows 60 API requests an hour.
 - The service faces the internet. It reads deployment state from the GitHub API only. Do not mount
   host folders other than the socket folder: `/deployments` holds every recipe's checkout, private
@@ -55,7 +55,7 @@ The badge above shows that this repo deploys with KitSHn. For the state of the l
 deploy in the README, use this line.
 
 ```markdown
-[![kitshn prod](https://img.shields.io/github/deployments/Yarden-zamir/kitshn-meta/prod?label=kitshn%20%C2%B7%20prod&labelColor=2F3532&logo=data:image/svg%2Bxml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxNCAxNCI+PGcgZmlsbD0iI2ZmZiI+PHJlY3QgeD0iNiIgeT0iMS4yIiB3aWR0aD0iMiIgaGVpZ2h0PSIxLjYiIHJ4PSIwLjUiLz48cmVjdCB4PSIyLjIiIHk9IjMuNCIgd2lkdGg9IjkuNiIgaGVpZ2h0PSIxLjUiIHJ4PSIwLjc1Ii8+PHJlY3QgeD0iMyIgeT0iNS42IiB3aWR0aD0iOCIgaGVpZ2h0PSI2LjYiIHJ4PSIxLjYiLz48cmVjdCB4PSIwLjgiIHk9IjYuOCIgd2lkdGg9IjIuNCIgaGVpZ2h0PSIxLjQiIHJ4PSIwLjciLz48cmVjdCB4PSIxMC44IiB5PSI2LjgiIHdpZHRoPSIyLjQiIGhlaWdodD0iMS40IiByeD0iMC43Ii8+PC9nPjwvc3ZnPgo=)](https://kitshn.yarden-zamir.com)
+[![kitshn prod](https://img.shields.io/github/deployments/Yarden-zamir/kitshn-meta/prod?label=kitshn%20%C2%B7%20prod&labelColor=2F3532&logo=data:image/svg%2Bxml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxNCAxNCI+PGcgZmlsbD0iI2ZmZiI+PHJlY3QgeD0iNiIgeT0iMS4yIiB3aWR0aD0iMiIgaGVpZ2h0PSIxLjYiIHJ4PSIwLjUiLz48cmVjdCB4PSIyLjIiIHk9IjMuNCIgd2lkdGg9IjkuNiIgaGVpZ2h0PSIxLjUiIHJ4PSIwLjc1Ii8+PHJlY3QgeD0iMyIgeT0iNS42IiB3aWR0aD0iOCIgaGVpZ2h0PSI2LjYiIHJ4PSIxLjYiLz48cmVjdCB4PSIwLjgiIHk9IjYuOCIgd2lkdGg9IjIuNCIgaGVpZ2h0PSIxLjQiIHJ4PSIwLjciLz48cmVjdCB4PSIxMC44IiB5PSI2LjgiIHdpZHRoPSIyLjQiIGhlaWdodD0iMS40IiByeD0iMC43Ii8+PC9nPjwvc3ZnPgo=)](https://kitshn-legacy.yarden-zamir.com)
 ```
 
 ## Origin
